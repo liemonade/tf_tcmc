@@ -49,8 +49,8 @@ def broadcast_matrix_indices_to_tensor_indices(matrix_indices, tensor_shape):
         m = np.max(matrix_indices[:,1])
         raise ValueError(f"Column index {m} in `matrix_indices` is invalid for an matrix of shape {tensor_shape[-2:]} as given by `tensor_shape`")
         
-    # The set of all rows of remaining_indices will be set of multi-indeces into a tensor
-    # of shape tensor_shape[:-2]. The rows are ordered by lexicographic ordering
+    # The set of all rows of `remaining_indices` will be a set of multi-indeces into a tensor
+    # of shape `tensor_shape[:-2]`. The rows are ordered by lexicographic ordering
     remaining_indices = np.stack((grid.flatten() for grid in np.indices(tensor_shape[:-2])),axis=-1)
     
     return crosscat_matrices(remaining_indices,matrix_indices)
