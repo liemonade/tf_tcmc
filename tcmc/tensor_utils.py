@@ -1,3 +1,5 @@
+import numpy as np
+
 def crosscat_matrices(A,B):
     """Concat the rows matrices A,B in a crossproducty way.
     
@@ -54,3 +56,20 @@ def broadcast_matrix_indices_to_tensor_indices(matrix_indices, tensor_shape):
     remaining_indices = np.stack((grid.flatten() for grid in np.indices(tensor_shape[:-2])),axis=-1)
     
     return crosscat_matrices(remaining_indices,matrix_indices)
+
+
+
+
+# given an array [2,4,3] of segment length compute an array
+# [0,0,1,1,1,1,2,2,2] of flags for the respective segments
+def segment_ids(segment_lengths):
+    # determine the indices where the value of segment_ids change
+    inc_idx = tf.cumsum(segment_lengths)
+    total_length = inc_idx[-1]
+    inc_idx = inc_idx[:-1]
+    
+    # Insert ones on the positions where the index should change
+    inc_ids = tf.scatter_nd(tf.expand_dims(inc_idx, 1), tf.ones_like(inc_idx), [total_length])
+    
+    # Use accumulated sums to generate ids for every segment
+    return tf.cumsum(inc_ids)

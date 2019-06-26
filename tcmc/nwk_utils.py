@@ -1,4 +1,5 @@
 import newick as nwk
+import numpy as np
 
 # function to convert `*.nwk` trees into numpy matrices of edge-lengths
 def nwk_read(nwk_filename, leaves=None):
