@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 
 def crosscat_matrices(A,B):
     """Concat the rows matrices A,B in a crossproducty way.
