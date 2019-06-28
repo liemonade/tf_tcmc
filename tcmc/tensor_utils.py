@@ -63,6 +63,7 @@ def broadcast_matrix_indices_to_tensor_indices(matrix_indices, tensor_shape):
 
 # given an array [2,4,3] of segment length compute an array
 # [0,0,1,1,1,1,2,2,2] of flags for the respective segments
+#@tf.function(input_signature=(tf.TensorSpec(shape=[None,1], dtype=tf.int64),))
 def segment_ids(segment_lengths):
     # determine the indices where the value of segment_ids change
     inc_idx = tf.cumsum(segment_lengths)
