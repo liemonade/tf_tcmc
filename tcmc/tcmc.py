@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import tensorflow as tf
 import numpy as np
 from . import tensor_utils
+from . import matrix_exponential
 
 
 
@@ -15,7 +16,6 @@ class TCMCProbability(tf.keras.layers.Layer):
         super(TCMCProbability, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        
         s = input_shape[-1]
         M = np.prod(self.model_shape)
         
@@ -25,8 +25,15 @@ class TCMCProbability(tf.keras.layers.Layer):
         
         # we could use the inverse of stereographic projection to get a probability vector
         self.pi_inv = self.add_weight(shape=(M,s-1), name="pi_inv", dtype=tf.float64, initializer='uniform')
+        
+        
+        # Retrieve the row and column indices for
+        # triangle matrix above the diagonal
+        mat_ind = np.stack(np.triu_indices(s,1),axis=-1)
+        iupper = tensor_utils.broadcast_matrix_indices_to_tensor_indices(mat_ind, (M,s,s)).reshape((M,-1,3))
+        self.iupper = tf.convert_to_tensor(iupper)
 
-    @tf.function
+    @tf.function#(input_signature=(tf.TensorSpec(shape=[None,None,None], dtype=tf.float64),))
     def call(self, inputs, training=None):
         
         # define local variable names
@@ -46,8 +53,9 @@ class TCMCProbability(tf.keras.layers.Layer):
         
         # Retrieve the row and column indices for
         # triangle matrix above the diagonal
-        mat_ind = np.stack(np.triu_indices(s,1),axis=-1)
-        iupper = tensor_utils.broadcast_matrix_indices_to_tensor_indices(mat_ind, (M,s,s)).reshape((M,-1,3))
+        #mat_ind = np.stack(np.triu_indices(s,1),axis=-1)
+        #iupper = tensor_utils.broadcast_matrix_indices_to_tensor_indices(mat_ind, (M,s,s)).reshape((M,-1,3))
+        iupper = self.iupper
         
 
         # construct the transition rate matrices
@@ -77,7 +85,9 @@ class TCMCProbability(tf.keras.layers.Layer):
                 e_t = edges_target[edges_target==a]
                 t = T[e_s,e_t]
                 with tf.name_scope(f"P_{a}"):
-                    P_a = tf.linalg.expm(t[:,None,None,None] * Q[None,...])
+                    #P_a = tf.linalg.expm(t[:,None,None,None] * Q[None,...])
+                    expm = matrix_exponential.matrix_exponential
+                    P_a = expm(t[:,None,None,None] * Q[None,...])
 
                 A_a = []
 
@@ -118,15 +128,14 @@ class TCMCProbability(tf.keras.layers.Layer):
         return cls(**config)
 
     
-    
+@tf.function
 def stereographic_projection(x):
     with tf.name_scope("stereographic_projection"):
         x_last = x[...,-1]
         y = x[...,:-1] / (1-x_last)[...,None]
         return y
 
-    
-    
+@tf.function 
 def inv_stereographic_projection(y):
     with tf.name_scope("inv_stereographic_projection"):
         norm_square = tf.reduce_sum(y**2, axis=-1)
