@@ -12,7 +12,7 @@ class Dirichlet(tf.initializers.Initializer):
     nonred: if True, the last component of the result vector is not reported
   """
 
-  def __init__(self, alpha = 10.0, nonred = False):
+  def __init__(self, alpha = 100.0, nonred = False):
     self.alpha = alpha
     self.nonred = nonred
 
@@ -48,12 +48,13 @@ class Dirichlet(tf.initializers.Initializer):
 
 class TCMCProbability(tf.keras.layers.Layer):
 
-    def __init__(self, model_shape, tree, num_leaves, **kwargs):
+    def __init__(self, model_shape, tree, num_leaves, gamma = 0., **kwargs):
         
         self.model_shape = model_shape
         self.M = np.prod(self.model_shape)
         self.tree = tree
         self.num_leaves = num_leaves
+        self.gamma = gamma # regularization weight
         super(TCMCProbability, self).__init__(**kwargs)
 
     def build(self, input_shape):
@@ -102,11 +103,23 @@ class TCMCProbability(tf.keras.layers.Layer):
             emut = tf.maximum(emut, 1e-9)
         Q = tf.multiply(Q, 1.0 / emut[:, None, None])
         return Q
-     
-        
-    @tf.function #(input_signature=(tf.TensorSpec(shape=[None,None,None], dtype=tf.float64),))
+    
+    
+    def regularization_loss(self, Q):
+        """ 
+            This penalizes the entries of Q after normalize_to_one_expected_mutation
+            The sum of square roots of off-diagonal entries encourages rather sparse
+            rates (in a soft sense).
+        """
+        with tf.name_scope("regularization"):
+            Qoffdiag = tf.linalg.set_diag(Q, diagonal = np.zeros([self.M, self.s]))
+            Q2 = tf.sqrt(tf.maximum(Qoffdiag, 0)) # penalizes more uniform rates within rows
+            reg_loss = self.gamma * tf.math.reduce_sum(Q2)
+        return reg_loss
+    
+    #@tf.function
     def call(self, inputs, training = None):
-        
+        #(input_signature=(tf.TensorSpec(shape=[None,None,None], dtype=tf.float64),))
         # define local variable names
         rates = self.rates ** 2
         pi_inv = self.pi_inv
@@ -126,7 +139,7 @@ class TCMCProbability(tf.keras.layers.Layer):
         # construct the transition rate matrices
         with tf.name_scope("Q"):
             Q = self.rate_matrices_from_rates(rates, pi)
-            Q = tf.multiply(Q, rho[:, None, None])
+            scaledQ = tf.multiply(Q, rho[:, None, None])
         
         A = []
 
@@ -139,9 +152,9 @@ class TCMCProbability(tf.keras.layers.Layer):
                 e_t = edges_target[edges_target == a]
                 t = T[e_s, e_t]
                 with tf.name_scope(f"P_{a}"):
-                    #P_a = tf.linalg.expm(t[:,None,None,None] * Q[None,...])
+                    #P_a = tf.linalg.expm(t[:,None,None,None] * scaledQ[None,...])
                     expm = matrix_exponential.matrix_exponential
-                    P_a = expm(t[:, None, None, None] * Q[None, ...])
+                    P_a = expm(t[:, None, None, None] * scaledQ[None, ...])
 
                 A_a = []
 
@@ -167,6 +180,9 @@ class TCMCProbability(tf.keras.layers.Layer):
 
         P_X = tf.einsum("imc, mc -> im", A[-1], pi,
                         name = f"probability_of_data_given_model")
+
+        # regularization loss
+        self.add_loss(self.regularization_loss(Q))
         
         return P_X
     
