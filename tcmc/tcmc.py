@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 from . import tensor_utils
 from . import matrix_exponential
-import tensorflow_probability as tfp
+#from tensorflow_probability import distributions
 
 class Dirichlet(tf.initializers.Initializer):
   """Dirichlet distribution initializer that generates a parameter vector of a multinoulli/multinomial distribution.
@@ -33,8 +33,7 @@ class Dirichlet(tf.initializers.Initializer):
     else:
         alpha = [alpha] * num_components
 
-    D = tfp.distributions.Dirichlet(alpha)
-    p = D.sample(shape[0:-1])
+    p = np.random.dirichlet(alpha, shape[0:-1])
 
     if (self.nonred):
         p = p[..., 0:-1] # remove last element of last dimension
