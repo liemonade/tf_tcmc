@@ -104,17 +104,18 @@ class TCMCProbability(tf.keras.layers.Layer):
         return Q
     
     
-    def regularization_loss(self, Q):
+    def regularization_loss_rates(self, Q):
         """ 
             This penalizes the entries of Q after normalize_to_one_expected_mutation
             The sum of square roots of off-diagonal entries encourages rather sparse
             rates (in a soft sense).
         """
-        with tf.name_scope("regularization"):
+        with tf.name_scope("regularization_rates"):
             Qoffdiag = tf.linalg.set_diag(Q, diagonal = np.zeros([self.M, self.s]))
             Q2 = tf.sqrt(tf.maximum(Qoffdiag, 0)) # penalizes more uniform rates within rows
             reg_loss = self.gamma * tf.math.reduce_sum(Q2)
         return reg_loss
+
     
     #@tf.function
     def call(self, inputs, training = None):
@@ -181,7 +182,7 @@ class TCMCProbability(tf.keras.layers.Layer):
                         name = f"probability_of_data_given_model")
 
         # regularization loss
-        self.add_loss(self.regularization_loss(Q))
+        self.add_loss(self.regularization_loss_rates(Q))
         
         return P_X
     
@@ -211,3 +212,6 @@ def inv_stereographic_projection(y):
         norm_square = tf.reduce_sum(y**2, axis=-1)
         x = tf.concat([2 * y, (norm_square - 1)[...,None]], axis = -1) * (1 / (norm_square + 1))[...,None]
         return x
+    
+# TODO: create custom loss layer to be optionally used after TCMCProbability
+# https://www.tensorflow.org/guide/keras/custom_layers_and_models
