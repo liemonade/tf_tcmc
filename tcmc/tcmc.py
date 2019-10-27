@@ -86,6 +86,7 @@ class TCMCProbability(tf.keras.layers.Layer):
         s = self.s
         iupper = self.iupper
         M = self.M
+        rates = rates ** 2 # raw rates can be negative, these are the actual (flattened) q_ij's
         with tf.name_scope("embed_rates"):
             Q = tf.scatter_nd(iupper, rates, shape=(M, s, s), name = "rate_matrix")
         with tf.name_scope("symmetrize"):
@@ -121,7 +122,6 @@ class TCMCProbability(tf.keras.layers.Layer):
     def call(self, inputs, training = None):
         #(input_signature=(tf.TensorSpec(shape=[None,None,None], dtype=tf.float64),))
         # define local variable names
-        rates = self.rates ** 2
         pi_inv = self.pi_inv
         rho = self.rho
         T = self.tree
@@ -138,7 +138,7 @@ class TCMCProbability(tf.keras.layers.Layer):
 
         # construct the transition rate matrices
         with tf.name_scope("Q"):
-            Q = self.rate_matrices_from_rates(rates, pi)
+            Q = self.rate_matrices_from_rates(self.rates, pi)
             scaledQ = tf.multiply(Q, rho[:, None, None])
         
         A = []
@@ -212,6 +212,3 @@ def inv_stereographic_projection(y):
         norm_square = tf.reduce_sum(y**2, axis=-1)
         x = tf.concat([2 * y, (norm_square - 1)[...,None]], axis = -1) * (1 / (norm_square + 1))[...,None]
         return x
-    
-# TODO: create custom loss layer to be optionally used after TCMCProbability
-# https://www.tensorflow.org/guide/keras/custom_layers_and_models
