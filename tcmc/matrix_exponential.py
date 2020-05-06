@@ -273,7 +273,7 @@ def matrix_exponential(A):
     
     # calculate the method of lowest index applicable
     # for each element of the batch
-    for i in range(num_methods):
+    for i in range(num_methods-1):
         methods = methods - tf.where(norms < theta[i], 1, 0)
         
         
