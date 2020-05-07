@@ -54,7 +54,7 @@ def broadcast_matrix_indices_to_tensor_indices(matrix_indices, tensor_shape):
         
     # The set of all rows of `remaining_indices` will be a set of multi-indeces into a tensor
     # of shape `tensor_shape[:-2]`. The rows are ordered by lexicographic ordering
-    remaining_indices = np.stack((grid.flatten() for grid in np.indices(tensor_shape[:-2])),axis=-1)
+    remaining_indices = np.stack(list(grid.flatten() for grid in np.indices(tensor_shape[:-2])),axis=-1)
     
     return crosscat_matrices(remaining_indices,matrix_indices)
 
