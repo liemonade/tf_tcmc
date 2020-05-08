@@ -12,7 +12,7 @@ class TCMCProbability(tf.keras.layers.Layer):
     def __bare_init(self,
                     model_shape,
                     should_train_lengths,
-                    stationairy_distribution_initializer,
+                    stationary_distribution_initializer,
                     rates_initializer,
                     generator_regularizer,
                     activity_regularizer,
@@ -25,7 +25,7 @@ class TCMCProbability(tf.keras.layers.Layer):
         self.model_shape = model_shape
         self._M = np.prod(self.model_shape)
         self.should_train_lengths = should_train_lengths
-        self.stationairy_distribution_initializer = tf.keras.initializers.get(stationairy_distribution_initializer)
+        self.stationary_distribution_initializer = tf.keras.initializers.get(stationary_distribution_initializer)
         self.rates_initializer = tf.keras.initializers.get(rates_initializer)
         self.generator_regularizer = tf.keras.regularizers.get(generator_regularizer)
     
@@ -34,7 +34,7 @@ class TCMCProbability(tf.keras.layers.Layer):
                  model_shape,
                  forest,
                  should_train_lengths=False,
-                 stationairy_distribution_initializer=None,
+                 stationary_distribution_initializer=None,
                  rates_initializer=None,
                  generator_regularizer=None,
                  activity_regularizer=None,
@@ -45,7 +45,7 @@ class TCMCProbability(tf.keras.layers.Layer):
         
         self.__bare_init(model_shape,
                          should_train_lengths,
-                         stationairy_distribution_initializer,
+                         stationary_distribution_initializer,
                          rates_initializer,
                          generator_regularizer,
                          activity_regularizer,
@@ -107,7 +107,7 @@ class TCMCProbability(tf.keras.layers.Layer):
         M = np.prod(self.model_shape)
         
         rates_initializer = self.rates_initializer if self.rates_initializer != None else tf.initializers.RandomUniform(minval=-1, maxval=1)
-        stationairy_distribution_initializer = self.stationairy_distribution_initializer if self.stationairy_distribution_initializer != None else tf.initializers.constant(1.0 / (np.sqrt(s) - 1))
+        stationary_distribution_initializer = self.stationary_distribution_initializer if self.stationary_distribution_initializer != None else tf.initializers.constant(1.0 / (np.sqrt(s) - 1))
         
         
         # The parameters that we want to learn
@@ -117,7 +117,7 @@ class TCMCProbability(tf.keras.layers.Layer):
         # we use the inverse of stereographic projection to get a probability vector
         #kernel_init = tf.initializers.constant(1.0 / (np.sqrt(s) - 1)) # this initializes pi with uniform distribution
         self.pi_inv = self.add_weight(shape=(M, s-1), name = "pi_inv", dtype = tf.float64,
-                                      initializer = stationairy_distribution_initializer)
+                                      initializer = stationary_distribution_initializer)
         
         self.lengths = self.add_weight(shape=(len(self._initial_lengths)), name='lengths', dtype=tf.float64,
                                       initializer = tf.constant_initializer(value=self._initial_lengths),
@@ -266,12 +266,12 @@ class TCMCProbability(tf.keras.layers.Layer):
         return tf.linalg.expm(t * self.normalized_generator)
     
     @property
-    def stationairy_distribution(self):
+    def stationary_distribution(self):
         pi_inv = self.get_weights()[1]
         return math.inv_stereographic_projection(pi_inv) ** 2
     
-    @stationairy_distribution.setter
-    def stationairy_distribution(self, pi):
+    @stationary_distribution.setter
+    def stationary_distribution(self, pi):
         if not (np.sum(pi, axis=-1) == 1.0).all() or (pi < 0).any():
             raise AttributeError(f'The input pi={pi} is not a collection of probability vectors!')
         
@@ -304,11 +304,11 @@ class TCMCProbability(tf.keras.layers.Layer):
         
     @property
     def generator(self):
-        return math.generator(self.rates, self.stationairy_distribution)
+        return math.generator(self.rates, self.stationary_distribution)
     
     @property
     def normalized_generator(self):
-        return math.generator(self.rates, self.stationairy_distribution, should_normalize_expected_mutations=True)
+        return math.generator(self.rates, self.stationary_distribution, should_normalize_expected_mutations=True)
 
     
     def get_config(self):
@@ -318,7 +318,7 @@ class TCMCProbability(tf.keras.layers.Layer):
         base_config['initial_lengths'] = self._initial_lengths
         base_config['edges'] = self._edges
         base_config['should_train_lengths'] = self.should_train_lengths
-        base_config['stationairy_distribution_initializer'] =  tf.keras.initializers.serialize(self.stationairy_distribution_initializer)
+        base_config['stationary_distribution_initializer'] =  tf.keras.initializers.serialize(self.stationary_distribution_initializer)
         base_config['rates_initializer'] = tf.keras.initializers.serialize(self.rates_initializer)
         base_config['generator_regularizer'] = tf.keras.regularizers.serialize(self.generator_regularizer)
         base_config['activity_regularizer'] = tf.keras.regularizers.serialize(self.activity_regularizer)
