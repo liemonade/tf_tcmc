@@ -272,7 +272,9 @@ class TCMCProbability(tf.keras.layers.Layer):
     
     @stationary_distribution.setter
     def stationary_distribution(self, pi):
-        if not (np.sum(pi, axis=-1) == 1.0).all() or (pi < 0).any():
+        dicimal_tolerance = 15
+        
+        if not (np.around(np.sum(pi, axis=-1), dicimal_tolerance) == 1.0).all() or (pi < 0).any():
             raise AttributeError(f'The input pi={pi} is not a collection of probability vectors!')
         
         
