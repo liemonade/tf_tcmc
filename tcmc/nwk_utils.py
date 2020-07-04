@@ -179,7 +179,7 @@ def read_leaves_in_string_order(nwk_tree_string):
     # these are precisely those nodes which do not have children
     # i.e. to the left of the node is either a '(' or ',' character
     # or the beginning of the line
-    leave_regex = re.compile('(?:^|[(,])([a-zA-Z]*)[:](?:(?:[0-9]*[.])?[0-9]+)')
+    leave_regex = re.compile('(?:^|[(,])([\w]*)[:](?:(?:[0-9]*[.])?[0-9]+)')
     
     matches = leave_regex.findall(nwk_tree_string)
     
