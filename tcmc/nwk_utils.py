@@ -51,32 +51,26 @@ def nwk_reads(nwk_string, return_variable_configuration=True):
     n = len(nodes)
     k = len(leave_names)
     
-    for it in range(n):
+    for it in list(range(k)) + list(reversed(range(k,n))):
         v = V[it]
-        w = v.ancestor
+        w = v
         
-        if w != None:
+        while w != None:
+        
             
             # add parent to nodes if note present
             if w not in V:
                 V.append(w)
-            else:
-                
-                # start repairing indicies by a bubble sort like algorithm
-                a = w
-                while a != None and a.ancestor in V and V.index(a) > V.index(a.ancestor):
-                    i = V.index(a)
-                    j = V.index(a.ancestor)
-                    V[i] = a.ancestor
-                    V[j] = a
-                    a = a.ancestor
             
-                # check whether the "new" index of w needs to be switched
-                if V.index(v) > V.index(w):
-                    i = V.index(v)
-                    j = V.index(w)
-                    V[i] = w
-                    V[j] = v
+            # start repairing indicies by a bubble sort like algorithm
+            elif V.index(v) > V.index(w):
+                i = V.index(v)
+                j = V.index(w)
+                V[i] = w
+                V[j] = v
+            
+            v = w
+            w = w.ancestor
             
     
     E = sorted([(V.index(nodes[v]), V.index(nodes[w])) for (v,w) in edges])
