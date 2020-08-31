@@ -181,14 +181,18 @@ class BatchedSequences(tf.keras.layers.Layer):
     def build(self, input_shape):
         super(BatchedSequences, self).build(input_shape)
 
-    @tf.function
-    def call(self, inputs, training = None):
+
+    @tf.function(input_signature=(
+        tf.TensorSpec(shape=[None,None], dtype=tf.float64, name='concatenated_sequences'),
+        tf.TensorSpec(shape=[None,1], dtype=tf.int64, name='sequence_lengths'),
+    ))
+    def call(self, concatenated_sequences, sequence_lengths):
         
         # concatenated sequences 
-        S = inputs[0]
+        S = concatenated_sequences
         
         # the lengths of the respective sequences
-        sl = inputs[1]
+        sl = sequence_lengths
         
         # the raw keras inputs inforce shape [None,1].
         # get rid of the unwanted dimension
