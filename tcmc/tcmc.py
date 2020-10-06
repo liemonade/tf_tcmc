@@ -311,7 +311,34 @@ class TCMCProbability(tf.keras.layers.Layer):
     @property
     def normalized_generator(self):
         return math.generator(self.rates, self.stationary_distribution, should_normalize_expected_mutations=True)
+    
+    @property
+    def expected_transitions(self):
+        return math.expected_transitions(self.generator, self.stationary_distribution)
 
+    
+    # Overwrite set_weights to only load trainable weights
+    # i.e. ignore branch lengths, which are clade specific
+    def set_weights(self, weights):
+        
+        old_weights = self.get_weights()
+        
+        # Check whether the weights of pi and R
+        # are compatible
+        R_inv_weights = weights[0]
+        pi_inv_weights = weights[1]
+        
+        if R_inv_weights.shape != old_weights[0].shape:
+            raise AttributeError(f'The input shape {R_inv_weights} does not match the rates shape {old_weights[0]}!')
+            
+        if pi_inv_weights.shape != old_weights[1].shape:
+            raise AttributeError(f'The input shape {pi_inv_weights} does not match the shape {old_weights[1]} of pi_inv!')
+            
+        old_weights[0] = R_inv_weights
+        old_weights[1] = pi_inv_weights
+        
+        super(TCMCProbability, self).set_weights(old_weights)
+        
     
     def get_config(self):
         base_config = super(TCMCProbability, self).get_config()

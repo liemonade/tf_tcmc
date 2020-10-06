@@ -57,6 +57,22 @@ def generator(rates, stationairy_distribution, should_normalize_expected_mutatio
 
 
 
+@tf.function
+def expected_transitions(generator, stationairy_distribution):
+    """
+        Calculate the expected number of state transitions from a generator matrix
+        and its stationairy distribution.
+    """
+
+    gen_diag = -tf.einsum('...ii->...i', generator)
+    pi = stationairy_distribution
+    
+    expected_transitions = tf.reduce_sum(tf.multiply(pi, gen_diag),
+                                         axis = 1, name = "expected_transitions")
+    
+    return expected_transitions
+    
+
 
 class Dirichlet(tf.initializers.Initializer):
     """Dirichlet distribution initializer that generates a parameter vector of a multinoulli/multinomial distribution.
