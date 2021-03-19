@@ -44,7 +44,8 @@ def nwk_reads(nwk_string, return_variable_configuration=True):
     names = [v.name for v in nodes]
     leave_names = read_leaves_in_string_order(nwk_string)
 
-    
+    print ("Read tree with node names", names,
+           ". Thereof leaves", leave_names)
     
     # get a buttom up order of the nodes
     V = [nodes[names.index(l)] for l in leave_names]
