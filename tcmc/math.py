@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from . import tensor_utils
-
+import itertools
 
 @tf.function
 def stereographic_projection(x):
@@ -17,11 +17,60 @@ def inv_stereographic_projection(y):
         x = tf.concat([2 * y, (norm_square - 1)[...,None]], axis = -1) * (1 / (norm_square + 1))[...,None]
         return x
 
+@tf.function 
+def sparse_rate_matrix(M, s):
+    """
+    Returns indices for the upper triangle rate matrix. Allowed are only transitions with maximal one mutation.
+
+    Args:
+        M (int): Number of models
+        s (int): size of the alphabet
+
+    Returns:
+        tf.Tensor: Tensor with all upper triangle indices for the rate matrix construction
+    """
+
+    max_tuple_length = 10
+    nuc_alphabet_s = [4 ** i for i in range(1, max_tuple_length)]
+    amino_alphabet_s = [20 ** i for i in range(1, max_tuple_length)]
     
-    
-    
+    if s in nuc_alphabet_s:
+        tuple_length = nuc_alphabet_s.index(s) + 1
+        alphabet = "acgt"
+    elif s in amino_alphabet_s:
+        tuple_length = amino_alphabet_s.index(s) + 1
+        alphabet = "ARNDCEQGHILKMFPSTWYV"
+    else:
+        raise ValueError(f"Unknown alphabet size: {s}. Supported are: {nuc_alphabet_s + amino_alphabet_s}.")
+
+    tuples = itertools.product(*[alphabet for i in range(tuple_length)])
+    tuples = [''.join(c) for c in tuples]    
+
+    def mutation(a1, a2, max_allowed_mutations = 1):
+        mutations_found = 0
+        for i in range(len(a1)):
+            if a1[i] != a2[i]:
+                mutations_found += 1
+        if mutations_found <= max_allowed_mutations:
+            return True
+        return False
+
+    iupper = []
+    for i, a1 in enumerate(tuples):
+        for j, a2 in enumerate(tuples):
+            if i < j:
+                if mutation(a1, a2):
+                    iupper.append([0, i, j])
+    iupperM = [iupper]
+    for m in range(1, M):
+        for i in range(len(iupper)):
+            iupper[i][0] = m
+        iupperM.append(iupper)
+
+    return tf.convert_to_tensor(iupperM, dtype=tf.int64)
+
 @tf.function
-def generator(rates, stationairy_distribution, should_normalize_expected_mutations=False):
+def generator(rates, stationairy_distribution, should_normalize_expected_mutations=False, sparse_rates = False):
     """ construct matrices from the rates, pi"""
     s = stationairy_distribution.shape[-1]
     model_shape = stationairy_distribution.shape[:-1]
@@ -30,11 +79,15 @@ def generator(rates, stationairy_distribution, should_normalize_expected_mutatio
     pi = stationairy_distribution
 
     # Retrieve the row and column indices for
-    # triangle matrix above the diagonal 
-    mat_ind = np.stack(np.triu_indices(s, 1), axis = -1)
-    iupper = tensor_utils.broadcast_matrix_indices_to_tensor_indices(mat_ind, (M, s, s)).reshape((M, -1, 3))
-    iupper = tf.convert_to_tensor(iupper)
+    # triangle matrix above the diagonal
 
+    if not sparse_rates:
+        mat_ind = np.stack(np.triu_indices(s, 1), axis = -1)
+        iupper = tensor_utils.broadcast_matrix_indices_to_tensor_indices(mat_ind, (M, s, s)).reshape((M, -1, 3))
+        iupper = tf.convert_to_tensor(iupper)
+    else:
+        iupper = sparse_rate_matrix(M, s)
+        rates_const = tf.convert_to_tensor(np.zeros((M, int(s * (s - 1) / 2 - rates.shape[-1]))) + 0.0001)
 
     rates = rates 
     with tf.name_scope("embed_rates"):
