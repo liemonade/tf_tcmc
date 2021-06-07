@@ -29,18 +29,18 @@ class TCMCProbability(tf.keras.layers.Layer):
         self.stationary_distribution_initializer = tf.keras.initializers.get(stationary_distribution_initializer)
         self.rates_initializer = tf.keras.initializers.get(rates_initializer)
         self.generator_regularizer = tf.keras.regularizers.get(generator_regularizer)
-        self.sparse_rates = False 
+        self.sparse_rates = sparse_rates 
     
 
     def __init__(self,
                  model_shape,
                  forest,
-                 sparse_rates=False,
                  should_train_lengths=False,
                  stationary_distribution_initializer=None,
                  rates_initializer=None,
                  generator_regularizer=None,
-                 activity_regularizer=None,
+                 activity_regularizer=None,                 
+                 sparse_rates=False,
                  **kwargs):
         
         if not 'dtype' in kwargs:
