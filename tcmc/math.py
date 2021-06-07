@@ -27,7 +27,8 @@ def sparse_rate_matrix(M, s):
         s (int): size of the alphabet
 
     Returns:
-        tf.Tensor: Tensor with all upper triangle indices for the rate matrix construction
+        tf.Tensor: Tensor with all indices of the parameter for the rate matrix construction
+        tf.Tensor: Tensor with all indices that are not parameter for the rate matrix construction
     """
 
     max_tuple_length = 10
@@ -55,19 +56,29 @@ def sparse_rate_matrix(M, s):
             return True
         return False
 
-    iupper = []
+    iupper = [] 
+    iupper_const = []
     for i, a1 in enumerate(tuples):
         for j, a2 in enumerate(tuples):
             if i < j:
                 if mutation(a1, a2):
                     iupper.append([0, i, j])
+                else:
+                    iupper_const.append([0, i, j])
+
     iupperM = [iupper]
+    iupperM_const = [iupper_const]
     for m in range(1, M):
         for i in range(len(iupper)):
             iupper[i][0] = m
+        for j in range(len(iupper_const)):
+            iupper_const[j][0] = m        
         iupperM.append(iupper)
+        iupperM_const.append(iupper_const)
 
-    return tf.convert_to_tensor(iupperM, dtype=tf.int64)
+    iupperM = tf.convert_to_tensor(iupperM, dtype=tf.int64)
+    iupperM_const = tf.convert_to_tensor(iupperM_const, dtype=tf.int64)
+    return iupperM, iupperM_const
 
 @tf.function
 def generator(rates, stationairy_distribution, should_normalize_expected_mutations=False, sparse_rates = False):
@@ -86,12 +97,17 @@ def generator(rates, stationairy_distribution, should_normalize_expected_mutatio
         iupper = tensor_utils.broadcast_matrix_indices_to_tensor_indices(mat_ind, (M, s, s)).reshape((M, -1, 3))
         iupper = tf.convert_to_tensor(iupper)
     else:
-        iupper = sparse_rate_matrix(M, s)
-        rates_const = tf.convert_to_tensor(np.zeros((M, int(s * (s - 1) / 2 - rates.shape[-1]))) + 0.0001)
+        const_rates = 0.00001
+        iupper, iupper_const = sparse_rate_matrix(M, s)
+        rates_const = tf.convert_to_tensor(np.zeros((M, int(s * (s - 1) / 2 - rates.shape[-1]))) + const_rates)
 
     rates = rates 
     with tf.name_scope("embed_rates"):
         Q = tf.scatter_nd(iupper, rates, shape=(M, s, s), name = "rate_matrix")
+        if sparse_rates:    
+            # tcmc does not allow rates of size 0, leads to error while training
+            Q_const = tf.scatter_nd(iupper_const, rates_const, shape=(M, s, s), name = "const_rate_matrix")
+            Q += Q_const
     with tf.name_scope("symmetrize"):
         Q = Q + tf.transpose(Q,(0, 2, 1), name = "transpose")
     with tf.name_scope("apply_stationary_probabilites"):
@@ -99,7 +115,7 @@ def generator(rates, stationairy_distribution, should_normalize_expected_mutatio
     with tf.name_scope("calculate_diagonals"):
         new_diagonal = tf.math.reduce_sum(-Q, axis = 2, name = "new_diagonal")
         Q = tf.linalg.set_diag(Q, new_diagonal, name = "apply_diagonal")
-        
+
     if should_normalize_expected_mutations:
         with tf.name_scope("normalize_to_one_expected_mutation"):
             emut = -tf.reduce_sum(tf.multiply(pi, new_diagonal),
