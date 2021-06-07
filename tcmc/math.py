@@ -42,7 +42,7 @@ def sparse_rate_matrix(M, s):
         tuple_length = amino_alphabet_s.index(s) + 1
         alphabet = "ARNDCEQGHILKMFPSTWYV"
     else:
-        raise ValueError(f"Unknown alphabet size: {s}. Supported are: {nuc_alphabet_s + amino_alphabet_s}.")
+        raise ValueError(f"Unknown alphabet size: {s}. Supported are: {nuc_alphabet_s} for nucleotides and {amino_alphabet_s} for amino acids. The tuple length must be bigger than 1.")
 
     tuples = itertools.product(*[alphabet for i in range(tuple_length)])
     tuples = [''.join(c) for c in tuples]    
@@ -97,7 +97,7 @@ def generator(rates, stationairy_distribution, should_normalize_expected_mutatio
         iupper = tensor_utils.broadcast_matrix_indices_to_tensor_indices(mat_ind, (M, s, s)).reshape((M, -1, 3))
         iupper = tf.convert_to_tensor(iupper)
     else:
-        const_rates = 0.00001
+        const_rates = 0.01/(s*s)
         iupper, iupper_const = sparse_rate_matrix(M, s)
         rates_const = tf.convert_to_tensor(np.zeros((M, int(s * (s - 1) / 2 - rates.shape[-1]))) + const_rates)
 
