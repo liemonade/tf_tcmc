@@ -32,8 +32,8 @@ def sparse_rate_matrix(M, s):
     """
 
     max_tuple_length = 10
-    nuc_alphabet_s = [4 ** i for i in range(1, max_tuple_length)]
-    amino_alphabet_s = [20 ** i for i in range(1, max_tuple_length)]
+    nuc_alphabet_s = [4 ** i for i in range(2, max_tuple_length)]
+    amino_alphabet_s = [20 ** i for i in range(2, max_tuple_length)]
     
     if s in nuc_alphabet_s:
         tuple_length = nuc_alphabet_s.index(s) + 1
@@ -107,7 +107,7 @@ def generator(rates, stationairy_distribution, should_normalize_expected_mutatio
         if sparse_rates:    
             # tcmc does not allow rates of size 0, leads to error while training
             Q_const = tf.scatter_nd(iupper_const, rates_const, shape=(M, s, s), name = "const_rate_matrix")
-            Q += Q_const
+            Q = Q + Q_const
     with tf.name_scope("symmetrize"):
         Q = Q + tf.transpose(Q,(0, 2, 1), name = "transpose")
     with tf.name_scope("apply_stationary_probabilites"):
