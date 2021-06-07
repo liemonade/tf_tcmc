@@ -36,10 +36,10 @@ def sparse_rate_matrix(M, s):
     amino_alphabet_s = [20 ** i for i in range(2, max_tuple_length)]
     
     if s in nuc_alphabet_s:
-        tuple_length = nuc_alphabet_s.index(s) + 1
+        tuple_length = nuc_alphabet_s.index(s) + 2
         alphabet = "acgt"
     elif s in amino_alphabet_s:
-        tuple_length = amino_alphabet_s.index(s) + 1
+        tuple_length = amino_alphabet_s.index(s) + 2
         alphabet = "ARNDCEQGHILKMFPSTWYV"
     else:
         raise ValueError(f"Unknown alphabet size: {s}. Supported are: {nuc_alphabet_s} for nucleotides and {amino_alphabet_s} for amino acids. The tuple length must be bigger than 1.")
