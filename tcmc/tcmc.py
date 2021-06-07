@@ -127,7 +127,7 @@ class TCMCProbability(tf.keras.layers.Layer):
             elif s in amino_s:
                 t = amino_s.index(s) + 1
                 u = 20
-            self.R_inv = self.add_weight(shape = (M, int((u-1)*t*(u**t)/2), name = "R_inv", dtype = tf.float64,
+            self.R_inv = self.add_weight(shape = (M, int((u-1)*t*(u**t)/2)), name = "R_inv", dtype = tf.float64,
                                      initializer = rates_initializer)
             
 
