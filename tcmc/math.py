@@ -97,7 +97,7 @@ def generator(rates, stationairy_distribution, should_normalize_expected_mutatio
         iupper = tensor_utils.broadcast_matrix_indices_to_tensor_indices(mat_ind, (M, s, s)).reshape((M, -1, 3))
         iupper = tf.convert_to_tensor(iupper)
     else:
-        const_rates = 0.01/(s*s)
+        const_rates = 0.01/(s-1)
         iupper, iupper_const = sparse_rate_matrix(M, s)
         rates_const = tf.convert_to_tensor(np.zeros((M, int(s * (s - 1) / 2 - rates.shape[-1]))) + const_rates)
 
