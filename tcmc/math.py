@@ -27,8 +27,8 @@ def sparse_rate_matrix(M, s):
         s (int): size of the alphabet
 
     Returns:
-        tf.Tensor: Tensor with all indices of the parameter for the rate matrix construction
-        tf.Tensor: Tensor with all indices that are not parameter for the rate matrix construction
+        tf.Tensor: Tensor with all indices of the trainable parameter for the rate matrix construction
+        tf.Tensor: Tensor with all indices that are not trainable parameter for the rate matrix construction
     """
 
     max_tuple_length = 10
@@ -89,15 +89,13 @@ def generator(rates, stationairy_distribution, should_normalize_expected_mutatio
 
     pi = stationairy_distribution
 
-    # Retrieve the row and column indices for
-    # triangle matrix above the diagonal
-
-    if not sparse_rates:
+    if not sparse_rates:  
+        # Retrieve the row and column indices for triangle matrix above the diagonal
         mat_ind = np.stack(np.triu_indices(s, 1), axis = -1)
         iupper = tensor_utils.broadcast_matrix_indices_to_tensor_indices(mat_ind, (M, s, s)).reshape((M, -1, 3))
         iupper = tf.convert_to_tensor(iupper)
     else:
-        const_rates = 0.01/(s-1)
+        const_rates = 0.01 / (s - 1)
         iupper, iupper_const = sparse_rate_matrix(M, s)
         rates_const = tf.convert_to_tensor(np.zeros((M, int(s * (s - 1) / 2 - rates.shape[-1]))) + const_rates)
 

@@ -116,19 +116,19 @@ class TCMCProbability(tf.keras.layers.Layer):
         if not self.sparse_rates:
             # The parameters that we want to learn
             self.R_inv = self.add_weight(shape = (M, int(s*(s-1)/2)), name = "R_inv", dtype = tf.float64,
-                                     initializer = rates_initializer)
+                                         initializer = rates_initializer)
         else:
             max_tuple_length = 10
-            nuc_s = [4 ** i for i in range(1, max_tuple_length)]
-            amino_s = [20 ** i for i in range(1, max_tuple_length)]
+            nuc_s = [4 ** i for i in range(2, max_tuple_length)]
+            amino_s = [20 ** i for i in range(2, max_tuple_length)]
             if s in nuc_s:
-                t = nuc_s.index(s) + 1
+                t = nuc_s.index(s) + 2
                 u = 4
             elif s in amino_s:
-                t = amino_s.index(s) + 1
+                t = amino_s.index(s) + 2
                 u = 20
-            self.R_inv = self.add_weight(shape = (M, int((u-1)*t*(u**t)/2)), name = "R_inv", dtype = tf.float64,
-                                     initializer = rates_initializer)
+            self.R_inv = self.add_weight(shape = (M, int((u-1)*t*s/2)), name = "R_inv", dtype = tf.float64,
+                                         initializer = rates_initializer)
             
 
         # we use the inverse of stereographic projection to get a probability vector
