@@ -118,15 +118,20 @@ class TCMCProbability(tf.keras.layers.Layer):
             self.R_inv = self.add_weight(shape = (M, int(s*(s-1)/2)), name = "R_inv", dtype = tf.float64,
                                          initializer = rates_initializer)
         else:
+
+            
             max_tuple_length = 10
-            nuc_s = [4 ** i for i in range(2, max_tuple_length)]
-            amino_s = [20 ** i for i in range(2, max_tuple_length)]
+            nuc_s = [4 ** i for i in range(1, max_tuple_length)]
+            amino_s = [20 ** i for i in range(1, max_tuple_length)]
             if s in nuc_s:
-                t = nuc_s.index(s) + 2
+                t = nuc_s.index(s) + 1
                 u = 4
             elif s in amino_s:
-                t = amino_s.index(s) + 2
+                t = amino_s.index(s) + 1
                 u = 20
+            if t == 1:
+                raise ValueError("The tuple_length must be bigger than 1.")
+
             self.R_inv = self.add_weight(shape = (M, int((u-1)*t*s/2)), name = "R_inv", dtype = tf.float64,
                                          initializer = rates_initializer)
             
