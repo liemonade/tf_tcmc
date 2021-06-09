@@ -118,8 +118,6 @@ class TCMCProbability(tf.keras.layers.Layer):
             self.R_inv = self.add_weight(shape = (M, int(s*(s-1)/2)), name = "R_inv", dtype = tf.float64,
                                          initializer = rates_initializer)
         else:
-
-            
             max_tuple_length = 10
             nuc_s = [4 ** i for i in range(1, max_tuple_length)]
             amino_s = [20 ** i for i in range(1, max_tuple_length)]
