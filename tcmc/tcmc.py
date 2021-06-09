@@ -128,12 +128,11 @@ class TCMCProbability(tf.keras.layers.Layer):
                 t = amino_s.index(s) + 1
                 u = 20
             if t == 1:
-                raise ValueError("The tuple_length must be bigger than 1.")
+                raise ValueError("The tuple_length must be bigger than 1 if you want to use a sparse rate matrix.")
 
             self.R_inv = self.add_weight(shape = (M, int((u-1)*t*s/2)), name = "R_inv", dtype = tf.float64,
                                          initializer = rates_initializer)
             
-
         # we use the inverse of stereographic projection to get a probability vector
         #kernel_init = tf.initializers.constant(1.0 / (np.sqrt(s) - 1)) # this initializes pi with uniform distribution
         self.pi_inv = self.add_weight(shape=(M, s-1), name = "pi_inv", dtype = tf.float64,

@@ -56,28 +56,21 @@ def sparse_rate_matrix(M, s):
             return True
         return False
 
-    iupper = [] 
-    iupper_const = []
+    iupper = [[] for i in range(M)]
+    iupper_const = [[] for i in range(M)]
+    
     for i, a1 in enumerate(tuples):
         for j, a2 in enumerate(tuples):
             if i < j:
                 if mutation(a1, a2):
-                    iupper.append([0, i, j])
+                    for m in range(M):
+                        iupper[m].append([m, i, j])
                 else:
-                    iupper_const.append([0, i, j])
+                    for m in range(M):
+                        iupper_const[m].append([m, i, j])    
 
-    iupperM = [iupper]
-    iupperM_const = [iupper_const]
-    for m in range(1, M):
-        for i in range(len(iupper)):
-            iupper[i][0] = m
-        for j in range(len(iupper_const)):
-            iupper_const[j][0] = m        
-        iupperM.append(iupper)
-        iupperM_const.append(iupper_const)
-
-    iupperM = tf.convert_to_tensor(iupperM, dtype=tf.int64)
-    iupperM_const = tf.convert_to_tensor(iupperM_const, dtype=tf.int64)
+    iupperM = tf.convert_to_tensor(iupper, dtype=tf.int64)
+    iupperM_const = tf.convert_to_tensor(iupper_const, dtype=tf.int64)
     return iupperM, iupperM_const
 
 @tf.function
