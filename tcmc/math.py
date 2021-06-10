@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
 from . import tensor_utils
-import itertools
 
 @tf.function
 def stereographic_projection(x):
