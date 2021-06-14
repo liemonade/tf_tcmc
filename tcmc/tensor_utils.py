@@ -123,7 +123,7 @@ def batched_segment_indices(segment_lengths):
 
 def sparse_rate_matrix(M, s):
     """
-    Returns indices for the upper triangle rate matrix. Allowed are only transitions with maximal one mutation.
+    Returns indices for the upper triangle rate matrix. Allowed are only transitions with at most one mutation per tuple.
 
     Args:
         M (int): Number of models
@@ -135,14 +135,15 @@ def sparse_rate_matrix(M, s):
     """
 
     max_tuple_length = 10
-    nuc_alphabet_s = [4 ** i for i in range(2, max_tuple_length)]
-    amino_alphabet_s = [20 ** i for i in range(2, max_tuple_length)]
+    min_tuple_length = 2
+    nuc_alphabet_s = [4 ** i for i in range(min_tuple_length, max_tuple_length)]
+    amino_alphabet_s = [20 ** i for i in range(min_tuple_length, max_tuple_length)]
     
     if s in nuc_alphabet_s:
-        tuple_length = nuc_alphabet_s.index(s) + 2
+        tuple_length = nuc_alphabet_s.index(s) + min_tuple_length
         alphabet = "acgt"
     elif s in amino_alphabet_s:
-        tuple_length = amino_alphabet_s.index(s) + 2
+        tuple_length = amino_alphabet_s.index(s) + min_tuple_length
         alphabet = "ARNDCEQGHILKMFPSTWYV"
     else:
         raise ValueError(f"Unknown alphabet size: {s}. Supported are: {nuc_alphabet_s} for nucleotides and {amino_alphabet_s} for amino acids. The tuple length must be bigger than 1.")

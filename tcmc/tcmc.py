@@ -118,19 +118,21 @@ class TCMCProbability(tf.keras.layers.Layer):
             self.R_inv = self.add_weight(shape = (M, int(s*(s-1)/2)), name = "R_inv", dtype = tf.float64,
                                          initializer = rates_initializer)
         else:
+            # currently for dna (4) and amino acids (20) alphabets only
             max_tuple_length = 10
-            nuc_s = [4 ** i for i in range(1, max_tuple_length)]
-            amino_s = [20 ** i for i in range(1, max_tuple_length)]
+            min_tuple_length = 2
+            nuc_s = [4 ** i for i in range(min_tuple_length, max_tuple_length)]
+            amino_s = [20 ** i for i in range(min_tuple_length, max_tuple_length)]
             if s in nuc_s:
-                t = nuc_s.index(s) + 1
+                tuple_length = nuc_s.index(s) + min_tuple_length
                 u = 4
             elif s in amino_s:
-                t = amino_s.index(s) + 1
+                tuple_length = amino_s.index(s) + min_tuple_length
                 u = 20
-            if t == 1:
-                raise ValueError("The tuple_length must be bigger than 1 if you want to use a sparse rate matrix.")
+            else:
+                raise ValueError(f"Currently we support dna (4) and amino acids (20) alphabets only. This means, that your input alphabet size s must be 4**t (dna) or 20**t (amino acids) for tuple length t with 10 >= t >= 2.")
 
-            self.R_inv = self.add_weight(shape = (M, int((u-1)*t*s/2)), name = "R_inv", dtype = tf.float64,
+            self.R_inv = self.add_weight(shape = (M, int((u-1)*tuple_length*s/2)), name = "R_inv", dtype = tf.float64,
                                          initializer = rates_initializer)
             
         # we use the inverse of stereographic projection to get a probability vector
