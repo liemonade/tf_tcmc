@@ -130,8 +130,8 @@ class TCMCProbability(tf.keras.layers.Layer):
                 tuple_length = amino_s.index(s) + min_tuple_length
                 u = 20
             else:
-                raise ValueError(f"Currently we support dna (4) and amino acids (20) alphabets only. This means, that your input\
- alphabet size s (s={s}) must be 4**t (dna) or 20**t (amino acids) for tuple length t with {max_tuple_length} >= t >= {min_tuple_length}.")
+                raise ValueError(f"Currently we support dna (4) and amino acids (20) alphabets only for the sparse rates parameter. This means, that\
+ your input alphabet size s (s={s}) must be 4**t (dna) or 20**t (amino acids) for tuple length t with {max_tuple_length} >= t >= {min_tuple_length}.")
 
             self.R_inv = self.add_weight(shape = (M, int((u-1)*tuple_length*s/2)), name = "R_inv", dtype = tf.float64,
                                          initializer = rates_initializer)
