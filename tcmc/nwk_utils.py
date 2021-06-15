@@ -46,36 +46,34 @@ def nwk_reads(nwk_string, return_variable_configuration=True):
 
     print ("Read tree with node names", names,
            ". Thereof leaves", leave_names)
-    
+
     # get a buttom up order of the nodes
     V = [nodes[names.index(l)] for l in leave_names]
     n = len(nodes)
     k = len(leave_names)
-    
+
     for it in list(range(k)) + list(reversed(range(k,n))):
         v = V[it]
         w = v
-        
+
         while w != None:
-        
-            
+
             # add parent to nodes if note present
             if w not in V:
                 V.append(w)
-            
+
             # start repairing indicies by a bubble sort like algorithm
             elif V.index(v) > V.index(w):
                 i = V.index(v)
                 j = V.index(w)
                 V[i] = w
                 V[j] = v
-            
+
             v = w
             w = w.ancestor
-            
-    
+
     E = sorted([(V.index(nodes[v]), V.index(nodes[w])) for (v,w) in edges])
-    
+
     if return_variable_configuration:
         # calculate the needed variables and dependencies for edge lengths
         T = np.zeros((len(E), len(E)))

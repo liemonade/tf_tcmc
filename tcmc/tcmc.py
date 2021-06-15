@@ -16,6 +16,7 @@ class TCMCProbability(tf.keras.layers.Layer):
                     rates_initializer,
                     generator_regularizer,
                     activity_regularizer,
+                    sparse_rates,
                     **kwargs):
         
         super(TCMCProbability, self).__init__(
@@ -28,6 +29,7 @@ class TCMCProbability(tf.keras.layers.Layer):
         self.stationary_distribution_initializer = tf.keras.initializers.get(stationary_distribution_initializer)
         self.rates_initializer = tf.keras.initializers.get(rates_initializer)
         self.generator_regularizer = tf.keras.regularizers.get(generator_regularizer)
+        self.sparse_rates = sparse_rates 
     
 
     def __init__(self,
@@ -37,7 +39,8 @@ class TCMCProbability(tf.keras.layers.Layer):
                  stationary_distribution_initializer=None,
                  rates_initializer=None,
                  generator_regularizer=None,
-                 activity_regularizer=None,
+                 activity_regularizer=None,                 
+                 sparse_rates=False,
                  **kwargs):
         
         if not 'dtype' in kwargs:
@@ -49,6 +52,7 @@ class TCMCProbability(tf.keras.layers.Layer):
                          rates_initializer,
                          generator_regularizer,
                          activity_regularizer,
+                         sparse_rates,
                          **kwargs)
         self.__parse_forest(forest)
         
@@ -100,20 +104,38 @@ class TCMCProbability(tf.keras.layers.Layer):
         self._initial_lengths = lengths
 
     def build(self, input_shape):
-        
+
         s = input_shape[-1]
         self.alphabet_size = s
-        
+
         M = np.prod(self.model_shape)
         
         rates_initializer = self.rates_initializer if self.rates_initializer != None else tf.initializers.RandomUniform(minval=-1, maxval=1)
         stationary_distribution_initializer = self.stationary_distribution_initializer if self.stationary_distribution_initializer != None else tf.initializers.constant(1.0 / (np.sqrt(s) - 1))
         
-        
-        # The parameters that we want to learn
-        self.R_inv = self.add_weight(shape = (M, int(s*(s-1)/2)), name = "R_inv", dtype = tf.float64,
-                                     initializer = rates_initializer)
-        
+        if not self.sparse_rates:
+            # The parameters that we want to learn
+            self.R_inv = self.add_weight(shape = (M, int(s*(s-1)/2)), name = "R_inv", dtype = tf.float64,
+                                         initializer = rates_initializer)
+        else:
+            # currently for dna (4) and amino acids (20) alphabets only
+            max_tuple_length = 10
+            min_tuple_length = 2
+            nuc_s = [4 ** i for i in range(min_tuple_length, max_tuple_length)]
+            amino_s = [20 ** i for i in range(min_tuple_length, max_tuple_length)]
+            if s in nuc_s:
+                tuple_length = nuc_s.index(s) + min_tuple_length
+                u = 4
+            elif s in amino_s:
+                tuple_length = amino_s.index(s) + min_tuple_length
+                u = 20
+            else:
+                raise ValueError(f"Currently we support dna (4) and amino acids (20) alphabets only for the sparse rates parameter. This means, that\
+ your input alphabet size s (s={s}) must be 4**t (dna) or 20**t (amino acids) for tuple length t with {max_tuple_length} >= t >= {min_tuple_length}.")
+
+            self.R_inv = self.add_weight(shape = (M, int((u-1)*tuple_length*s/2)), name = "R_inv", dtype = tf.float64,
+                                         initializer = rates_initializer)
+            
         # we use the inverse of stereographic projection to get a probability vector
         #kernel_init = tf.initializers.constant(1.0 / (np.sqrt(s) - 1)) # this initializes pi with uniform distribution
         self.pi_inv = self.add_weight(shape=(M, s-1), name = "pi_inv", dtype = tf.float64,
@@ -191,7 +213,7 @@ class TCMCProbability(tf.keras.layers.Layer):
 
         # construct the transition rate matrices
         with tf.name_scope("Q"):
-            Q = math.generator(R, pi)
+            Q = math.generator(R, pi, sparse_rates = self.sparse_rates)
             
         with tf.name_scope("P"):
             P = tf.linalg.expm(lengths[:, None, None, None] * Q[None, ...])

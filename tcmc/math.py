@@ -2,7 +2,6 @@ import tensorflow as tf
 import numpy as np
 from . import tensor_utils
 
-
 @tf.function
 def stereographic_projection(x):
     with tf.name_scope("stereographic_projection"):
@@ -17,11 +16,8 @@ def inv_stereographic_projection(y):
         x = tf.concat([2 * y, (norm_square - 1)[...,None]], axis = -1) * (1 / (norm_square + 1))[...,None]
         return x
 
-    
-    
-    
 @tf.function
-def generator(rates, stationairy_distribution, should_normalize_expected_mutations=False):
+def generator(rates, stationairy_distribution, should_normalize_expected_mutations=False, sparse_rates = False):
     """ construct matrices from the rates, pi"""
     s = stationairy_distribution.shape[-1]
     model_shape = stationairy_distribution.shape[:-1]
@@ -29,16 +25,23 @@ def generator(rates, stationairy_distribution, should_normalize_expected_mutatio
 
     pi = stationairy_distribution
 
-    # Retrieve the row and column indices for
-    # triangle matrix above the diagonal 
-    mat_ind = np.stack(np.triu_indices(s, 1), axis = -1)
-    iupper = tensor_utils.broadcast_matrix_indices_to_tensor_indices(mat_ind, (M, s, s)).reshape((M, -1, 3))
-    iupper = tf.convert_to_tensor(iupper)
-
+    if not sparse_rates:  
+        # Retrieve the row and column indices for triangle matrix above the diagonal
+        mat_ind = np.stack(np.triu_indices(s, 1), axis = -1)
+        iupper = tensor_utils.broadcast_matrix_indices_to_tensor_indices(mat_ind, (M, s, s)).reshape((M, -1, 3))
+        iupper = tf.convert_to_tensor(iupper)
+    else:
+        const_rates = 0.01 / (s - 1)
+        iupper, iupper_const = tensor_utils.sparse_rate_matrix(M, s)
+        rates_const = tf.convert_to_tensor(np.zeros((M, int(s * (s - 1) / 2 - rates.shape[-1]))) + const_rates)
 
     rates = rates 
     with tf.name_scope("embed_rates"):
         Q = tf.scatter_nd(iupper, rates, shape=(M, s, s), name = "rate_matrix")
+        if sparse_rates:    
+            # tcmc does not allow rates of size 0, leads to error while training
+            Q_const = tf.scatter_nd(iupper_const, rates_const, shape=(M, s, s), name = "const_rate_matrix")
+            Q = Q + Q_const
     with tf.name_scope("symmetrize"):
         Q = Q + tf.transpose(Q,(0, 2, 1), name = "transpose")
     with tf.name_scope("apply_stationary_probabilites"):
@@ -46,7 +49,7 @@ def generator(rates, stationairy_distribution, should_normalize_expected_mutatio
     with tf.name_scope("calculate_diagonals"):
         new_diagonal = tf.math.reduce_sum(-Q, axis = 2, name = "new_diagonal")
         Q = tf.linalg.set_diag(Q, new_diagonal, name = "apply_diagonal")
-        
+
     if should_normalize_expected_mutations:
         with tf.name_scope("normalize_to_one_expected_mutation"):
             emut = -tf.reduce_sum(tf.multiply(pi, new_diagonal),
