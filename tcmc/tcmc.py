@@ -399,3 +399,16 @@ class TCMCProbability(tf.keras.layers.Layer):
         self._edges = edges
         
         return self
+
+
+    def export_matrices(self, qFileName, piFileName):
+        pi = math.inv_stereographic_projection(self.pi_inv) ** 2 # pi sums up to 1
+
+        R = tf.math.exp(self.R_inv)
+        Q = math.generator(R, pi, sparse_rates = self.sparse_rates)
+
+        Q = Q.numpy()
+        pi = pi.numpy()
+        # Data is always written in ‘C’ order,
+        Q.tofile(qFileName, sep='\n')
+        pi.tofile(piFileName, sep='\n')
